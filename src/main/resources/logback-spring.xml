@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Docker has built-in logging driver for Fluentd which is very convenient for applications running on Kubernetes.
+  Logs are directly shipped to Fluentd service from STDOUT and no additional logs file or persistent storage is required
+-->
+<configuration>
+
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+  <!-- https://github.com/spring-projects/spring-boot/blob/2.6.x/spring-boot-project/spring-boot/src/main/resources/org/springframework/boot/logging/logback/defaults.xml-->
+  <property name="CONSOLE_LOG_PATTERN_SERVICE"
+    value="${CONSOLE_LOG_PATTERN_SERVICE:-%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>${CONSOLE_LOG_PATTERN_SERVICE}</pattern>
+    </encoder>
+  </appender>
+
+  <springProfile name="!kubernetes">
+    <logger level="INFO" name="com.zaxxer.hikari"/>
+    <root level="INFO">
+      <appender-ref ref="STDOUT"/>
+      <!-- <appender-ref ref="CONSOLE"/> -->
+    </root>
+  </springProfile>
+
+  <springProfile name="kubernetes">
+    <appender name="json" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+        <providers>
+          <timestamp>
+            <timeZone>America/Sao_Paulo</timeZone>
+          </timestamp>
+          <pattern>
+            <pattern>
+              {
+              "level": "%level",
+              "message": "%message",
+              "traceId": "%mdc{traceId}",
+              "spanId": "%mdc{spanId}",
+              <!-- Nginx requestID -->
+              "requestId": "%mdc{X-Request-ID}",
+              "logger": "%logger",
+              "thread": "%thread"
+              }
+            </pattern>
+          </pattern>
+          <stackTrace>
+            <fieldName>stackTrace</fieldName>
+            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+              <maxDepthPerThrowable>full</maxDepthPerThrowable>
+              <maxLength>full</maxLength>
+              <shortenedClassNameLength>20</shortenedClassNameLength>
+              <rootCauseFirst>true</rootCauseFirst>
+            </throwableConverter>
+          </stackTrace>
+        </providers>
+      </encoder>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="json"/>
+    </root>
+
+  </springProfile>
+
+</configuration>

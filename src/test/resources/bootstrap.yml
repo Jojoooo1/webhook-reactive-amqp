@@ -1,0 +1,7 @@
+spring:
+  main:
+    banner-mode: "off"
+  application:
+    name: service-webhook
+  profiles:
+    active: test

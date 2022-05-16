@@ -1,0 +1,81 @@
+version: '3.9'
+
+services:
+  webhook:
+    container_name: webhook
+    hostname: webhook
+    image: maven:3.8.4-openjdk-17
+    user: '1000'
+    command: [ 'mvn', 'clean', 'spring-boot:run', '-Dspring.profiles.active=$API_PROFILE', '-Duser.home=/var/maven' ]
+    ports:
+      - 8081:8081
+    environment:
+      MAVEN_CONFIG: /var/maven/.m2
+
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: user
+      RABBITMQ_PASSWORD: bitnami
+      SPRING_PROFILES_ACTIVE: dev
+
+      # QUEUE (Consumer / Producer)
+      RABBITMQ_WEBHOOKS_TEMPLATE_EXCHANGE: webhook
+      RABBITMQ_WEBHOOKS_TEMPLATE_ROUTING_KEY: webhook_external_api
+      RABBITMQ_WEBHOOKS_TEMPLATE_QUEUE: webhook_queue
+
+      # DQL (Producer)
+      RABBITMQ_WEBHOOKS_DLQ_EXCHANGE: webhook_dlx
+      RABBITMQ_WEBHOOKS_DLQ_ROUTING_KEY: webhook_external_api
+
+    volumes:
+      - .:/usr/src/workdir:rw
+      - ~/.m2:/var/maven/.m2
+    working_dir: /usr/src/workdir
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl --fail --silent localhost:8080/actuator/health | grep UP || exit 1' ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - network
+
+  rabbitmq:
+    container_name: rabbitmq
+    hostname: rabbitmq
+    image: bitnami/rabbitmq:latest
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 20s
+      timeout: 10s
+      retries: 10
+    environment:
+      #      RABBITMQ_USERNAME: user
+      #      RABBITMQ_PASSWORD: bitnami
+
+      # definition config: user bitnami
+      RABBITMQ_LOAD_DEFINITIONS: "true"
+      RABBITMQ_DEFINITIONS_FILE: /etc/rabbitmq/definitions.json
+
+      RABBITMQ_NODE_PORT_NUMBER: 5672
+      RABBITMQ_MANAGEMENT_PORT_NUMBER: 15672
+      RABBITMQ_PLUGINS: rabbitmq_management rabbitmq_shovel rabbitmq_shovel_management rabbitmq_delayed_message_exchange
+      RABBITMQ_COMMUNITY_PLUGINS: https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/3.9.0/rabbitmq_delayed_message_exchange-3.9.0.ez
+
+    volumes:
+      - ./config/definition.json:/etc/rabbitmq/definitions.json
+
+    networks:
+      - network
+
+volumes:
+  api:
+  # rabbitmq:
+
+networks:
+  network:
+    driver: bridge
+

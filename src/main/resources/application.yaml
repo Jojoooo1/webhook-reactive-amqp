@@ -1,0 +1,46 @@
+server:
+  port: 8081
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info, health, prometheus, metrics # default: health, info
+
+service:
+  webhooks:
+    timeout: ${WEBHOOK_TIMEOUT:5000}
+    min-retry-delay: ${RABBITMQ_RETRY_DELAY:10000}
+    max-retry-delay: ${RABBITMQ_RETRY_DELAY:30000}
+    max-retry: ${RABBITMQ_MAX_RETRY:3}
+
+    template:
+      exchange: ${RABBITMQ_WEBHOOKS_TEMPLATE_EXCHANGE}
+      routingkey: ${RABBITMQ_WEBHOOKS_TEMPLATE_ROUTING_KEY}
+      queue: ${RABBITMQ_WEBHOOKS_TEMPLATE_QUEUE}
+
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+
+    listener:
+      simple:
+        acknowledge-mode: manual # Note: Mandatory for reactive listener
+        # Note: Prevent infinite loop on ConnectTimeoutException. Or can use AmqpRejectAndDontRequeueException
+        default-requeue-rejected: false # cause messages to be discarded (or routed to a dead letter exchange)
+  
+  sleuth:
+    otel:
+      config:
+        trace-id-ratio-based: 0
+
+logging:
+  level:
+    web: info

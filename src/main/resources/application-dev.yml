@@ -1,0 +1,13 @@
+service:
+  webhooks:
+    template:
+      exchange: webhook
+      routingkey: webhook_external_api
+      queue: webhook_queue
+
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: 5672
+    username: user
+    password: bitnami

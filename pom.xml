@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <artifactId>service.webhook</artifactId>
+
+  <description>webhook microservice</description>
+  <groupId>com</groupId>
+  <modelVersion>4.0.0</modelVersion>
+  <name>service.webhook</name>
+
+  <parent>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <groupId>org.springframework.boot</groupId>
+    <relativePath/>
+    <version>2.6.7</version> <!-- lookup parent from repository -->
+  </parent>
+
+  <properties>
+    <java.version>17</java.version>
+
+    <!-- The main class -->
+    <start-class>com.service.webhook.Application
+    </start-class>
+    <repackage.classifier/>
+
+    <!-- Spring Cloud -->
+    <spring-cloud.version>2021.0.2</spring-cloud.version>
+    <spring-cloud-sleuth-otel.version>1.1.0-SNAPSHOT</spring-cloud-sleuth-otel.version>
+    <opentelemetry-exporter-otlp>1.12.0</opentelemetry-exporter-otlp>
+    <grpc-netty-shaded>1.45.1</grpc-netty-shaded>
+
+    <!-- Logging & Metrics & Tracing -->
+    <logstash.version>7.1.1</logstash.version>
+
+    <!-- Apache commons -->
+    <apache-commons-text.version>1.9</apache-commons-text.version>
+
+    <!-- Jib -->
+    <jib.container.port>8080</jib.container.port>
+    <jib.version>3.2.1</jib.version>
+  </properties>
+
+  <dependencies>
+
+    <dependency>
+      <artifactId>spring-boot-starter-web</artifactId>
+      <groupId>org.springframework.boot</groupId>
+    </dependency>
+
+    <!-- Reactive Client -->
+    <dependency>
+      <artifactId>spring-boot-starter-webflux</artifactId>
+      <groupId>org.springframework.boot</groupId>
+    </dependency>
+    <!-- Used to test if code is really reactive -->
+    <dependency>
+      <artifactId>blockhound</artifactId>
+      <groupId>io.projectreactor.tools</groupId>
+      <version>1.0.6.RELEASE</version>
+    </dependency>
+
+    <!-- QUEUE -->
+    <dependency>
+      <artifactId>spring-boot-starter-amqp</artifactId>
+      <groupId>org.springframework.boot</groupId>
+    </dependency>
+
+    <!-- Logging -->
+    <dependency>
+      <artifactId>logstash-logback-encoder</artifactId>
+      <groupId>net.logstash.logback</groupId>
+      <version>${logstash.version}</version>
+    </dependency>
+
+    <!-- Monitoring -->
+    <dependency>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <groupId>io.micrometer</groupId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+      <groupId>org.springframework.boot</groupId>
+    </dependency>
+
+    <!-- Sleuth with OpenTelemetry tracer implementation -->
+    <!-- Note: Removed otel since rabbitMQ tracing is not working properly-->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-sleuth</artifactId>
+      <!--      <exclusions>-->
+      <!--        <exclusion>-->
+      <!--          <groupId>org.springframework.cloud</groupId>-->
+      <!--          <artifactId>spring-cloud-sleuth-brave</artifactId>-->
+      <!--        </exclusion>-->
+      <!--      </exclusions>-->
+    </dependency>
+    <!-- This dependency adds OTel support -->
+    <!--    <dependency>-->
+    <!--      <groupId>org.springframework.cloud</groupId>-->
+    <!--      <artifactId>spring-cloud-sleuth-otel-autoconfigure</artifactId>-->
+    <!--    </dependency>-->
+    <!--    <dependency>-->
+    <!--      <artifactId>opentelemetry-exporter-otlp</artifactId>-->
+    <!--      <groupId>io.opentelemetry</groupId>-->
+    <!--      <version>${opentelemetry-exporter-otlp}</version>-->
+    <!--    </dependency>-->
+    <!--    <dependency>-->
+    <!--      <artifactId>grpc-netty-shaded</artifactId>-->
+    <!--      <groupId>io.grpc</groupId>-->
+    <!--      <version>${grpc-netty-shaded}</version>-->
+    <!--    </dependency>-->
+
+    <!-- Utilities -->
+    <dependency>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <artifactId>commons-text</artifactId>
+      <groupId>org.apache.commons</groupId>
+      <version>${apache-commons-text.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>lombok</artifactId>
+      <groupId>org.projectlombok</groupId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <artifactId>gson</artifactId>
+      <groupId>com.google.code.gson</groupId>
+      <version>2.9.0</version>
+    </dependency>
+
+  </dependencies>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-sleuth-otel-dependencies</artifactId>
+        <version>${spring-cloud-sleuth-otel.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <plugins>
+
+      <plugin>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <groupId>org.springframework.boot</groupId>
+      </plugin>
+
+      <!-- Jib: Image build -->
+      <plugin>
+        <artifactId>jib-maven-plugin</artifactId>
+        <configuration>
+          <container>
+            <!-- root:x:0:0:root:/root:/sbin/nologin-->
+            <!-- nobody:x:65534:65534:nobody:/nonexistent:/sbin/nologin-->
+            <!-- nonroot:x:65532:65532:nonroot:/home/nonroot:/sbin/nologin-->
+            <creationTime>${maven.build.timestamp}</creationTime>
+            <ports>
+              <port>${jib.container.port}</port>
+            </ports>
+            <user>nonroot:nonroot</user>
+          </container>
+          <from>
+            <image>gcr.io/distroless/java17:nonroot</image>
+          </from>
+        </configuration>
+        <groupId>com.google.cloud.tools</groupId>
+        <version>${jib.version}</version>
+      </plugin>
+    </plugins>
+  </build>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>spring-milestones</id>
+      <name>Spring Milestones</name>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <url>https://repo.spring.io/milestone</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <repositories>
+    <!-- Used by Otel -->
+    <repository>
+      <id>spring-snapshots</id>
+      <url>https://repo.spring.io/snapshot</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>spring-milestones</id>
+      <url>https://repo.spring.io/milestone</url>
+    </repository>
+  </repositories>
+
+  <version>0.0.1-SNAPSHOT</version>
+
+</project>

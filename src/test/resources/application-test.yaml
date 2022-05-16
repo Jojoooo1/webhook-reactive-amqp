@@ -1,0 +1,16 @@
+service:
+  webhooks:
+    dlq:
+      exchange: webhook_dlx
+      routingkey: webhook_external_api
+    template:
+      exchange: webhook
+      routingkey: webhook_external_api
+      queue: webhook_queue
+
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: user
+    password: bitnami
